@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Nagaratham Boat Service</title>
+<style>
+body{font-family:Arial;margin:0;background:#f2f6f4;color:#17202a}header{background:#087f5b;color:white;text-align:center;padding:18px}
+main{max-width:900px;margin:auto;padding:12px}.card{background:white;border-radius:12px;padding:16px;margin:12px 0;box-shadow:0 2px 8px #0001}
+label{display:block;margin:10px 0 5px;font-weight:bold}input,select,textarea,button{width:100%;box-sizing:border-box;padding:12px;font-size:16px;border:1px solid #ccd5d1;border-radius:8px}
+button{background:#087f5b;color:white;border:0;margin-top:12px;font-weight:bold}.hidden{display:none}.status{background:#e9f7ef;padding:10px;margin-top:10px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}table{border-collapse:collapse;width:100%;font-size:13px}td,th{border-bottom:1px solid #ddd;padding:7px;text-align:left}@media(max-width:600px){.grid{grid-template-columns:1fr}}
+</style></head>
+<body>
+<header><h1>Nagaratham Boat Service</h1><p>Online Booking & Management</p></header>
+<main>
+<section class="card"><h2>Customer Booking / முன்பதிவு</h2>
+<form id="bookingForm">
+<label>Name / பெயர்</label><input id="customer" required>
+<label>Phone / தொலைபேசி</label><input id="phone" type="tel" required>
+<label>Trip / பயணம்</label><select id="trip"><option>Nagadeepa Only</option><option>Delft Island Only</option><option>Delft + Nagadeepa</option></select>
+<div class="grid"><div><label>Passengers</label><input id="people" type="number" min="1" value="2" required></div><div><label>Date</label><input id="date" type="date" required></div></div>
+<div class="grid"><div><label>Pickup</label><input id="pickup" value="Kurikaddwan Jetty" required></div><div><label>Time</label><input id="time" type="time" required></div></div>
+<label>Notes</label><textarea id="notes"></textarea><button>Send Booking Request</button></form><div id="bookingMessage" class="status hidden"></div>
+</section>
+<section class="card"><h2>Admin Login</h2><label>Email</label><input id="email" type="email"><label>Password</label><input id="password" type="password"><button id="login">Login</button><button id="logout" class="hidden">Logout</button><div id="loginMsg" class="status hidden"></div></section>
+<section id="admin" class="card hidden"><h2>Bookings</h2><button id="refresh">Refresh</button><div id="bookings"></div><button id="csv">Export CSV</button></section>
+</main>
+<script type="module">
+import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {getAuth,signInWithEmailAndPassword,signOut,onAuthStateChanged} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import {getFirestore,collection,addDoc,getDocs,query,orderBy,updateDoc,doc,serverTimestamp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+const firebaseConfig={apiKey:"AIzaSyCRJG_gbn_USLK-Y8H1idCCSmxJDgg0Ku",authDomain:"nagaratham-boat-service-c3fa5.firebaseapp.com",projectId:"nagaratham-boat-service-c3fa5",storageBucket:"nagaratham-boat-service-c3fa5.firebasestorage.app",messagingSenderId:"275168197537",appId:"1:275168197537:web:8425c5efdb01fe55169e0"};
+const app=initializeApp(firebaseConfig),auth=getAuth(app),db=getFirestore(app),$=id=>document.getElementById(id);
+const show=(id,msg)=>{$(id).textContent=msg;$(id).classList.remove("hidden")};
+$("bookingForm").onsubmit=async e=>{e.preventDefault();try{await addDoc(collection(db,"bookings"),{customer:$("customer").value,phone:$("phone").value,trip:$("trip").value,people:+$("people").value,date:$("date").value,pickup:$("pickup").value,time:$("time").value,notes:$("notes").value,status:"Pending",createdAt:serverTimestamp()});show("bookingMessage","Booking request sent! We will contact you.");e.target.reset();$("pickup").value="Kurikaddwan Jetty";$("people").value=2}catch(err){show("bookingMessage","Booking failed: "+err.message)}};
+$("login").onclick=async()=>{try{await signInWithEmailAndPassword(auth,$("email").value,$("password").value);show("loginMsg","Logged in")}catch(e){show("loginMsg","Login error: "+e.message)}};
+$("logout").onclick=()=>signOut(auth);
+onAuthStateChanged(auth,user=>{$("admin").classList.toggle("hidden",!user);$("logout").classList.toggle("hidden",!user);$("login").classList.toggle("hidden",!!user);if(user)load()});
+async function load(){try{let s=await getDocs(query(collection(db,"bookings"),orderBy("createdAt","desc")));window.rows=s.docs.map(d=>({id:d.id,...d.data()}));$("bookings").innerHTML=window.rows.length?'<table><tr><th>Date/time</th><th>Customer</th><th>Trip</th><th>Passengers</th><th>Status</th><th>Update</th></tr>'+window.rows.map(b=>`<tr><td>${b.date||""} ${b.time||""}</td><td>${b.customer||""}<br>${b.phone||""}</td><td>${b.trip||""}</td><td>${b.people||""}</td><td>${b.status||""}</td><td><select id="st${b.id}"><option>Pending</option><option>Confirmed</option><option>Completed</option><option>Cancelled</option></select><button data-id="${b.id}">Save</button></td></tr>`).join("")+'</table>':"No bookings yet";$("bookings").querySelectorAll("button[data-id]").forEach(b=>b.onclick=async()=>{await updateDoc(doc(db,"bookings",b.dataset.id),{status:$("st"+b.dataset.id).value});load()})}catch(e){$("bookings").textContent="Load error: "+e.message}}
+$("refresh").onclick=load;
+$("csv").onclick=()=>{let r=window.rows||[],keys=["customer","phone","trip","people","date","time","pickup","status","notes"],csv=[keys.join(","),...r.map(x=>keys.map(k=>'"'+String(x[k]||"").replace(/"/g,'""')+'"').join(","))].join("\n"),a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));a.download="boat-bookings.csv";a.click()};
+</script></body></html>
