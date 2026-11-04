@@ -28,8 +28,15 @@ button{background:#087f5b;color:white;border:0;margin-top:12px;font-weight:bold}
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {getAuth,signInWithEmailAndPassword,signOut,onAuthStateChanged} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {getFirestore,collection,addDoc,getDocs,query,orderBy,updateDoc,doc,serverTimestamp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-const firebaseConfig={apiKey:"AIzaSyCRJG_gbn_USLK-Y8H1idCCSmxJDgg0Ku",authDomain:"nagaratham-boat-service-c3fa5.firebaseapp.com",projectId:"nagaratham-boat-service-c3fa5",storageBucket:"nagaratham-boat-service-c3fa5.firebasestorage.app",messagingSenderId:"275168197537",appId:"1:275168197537:web:8425c5efdb01fe55169e0"};
-const app=initializeApp(firebaseConfig),auth=getAuth(app),db=getFirestore(app),$=id=>document.getElementById(id);
+const firebaseConfig = {
+  apiKey: "AIzaSyCRJG_gbn_USLk-Y8IHidCCSmxJDgg0KUo",
+  authDomain: "nagaratham-boat-service-c3fa5.firebaseapp.com",
+  projectId: "nagaratham-boat-service-c3fa5",
+  storageBucket: "nagaratham-boat-service-c3fa5.firebasestorage.app",
+  messagingSenderId: "275168197537",
+  appId: "1:275168197537:web:8425c5efdb01f0e55169e0",
+  measurementId: "G-8XLN1W35ZT"
+};
 const show=(id,msg)=>{$(id).textContent=msg;$(id).classList.remove("hidden")};
 $("bookingForm").onsubmit=async e=>{e.preventDefault();try{await addDoc(collection(db,"bookings"),{customer:$("customer").value,phone:$("phone").value,trip:$("trip").value,people:+$("people").value,date:$("date").value,pickup:$("pickup").value,time:$("time").value,notes:$("notes").value,status:"Pending",createdAt:serverTimestamp()});show("bookingMessage","Booking request sent! We will contact you.");e.target.reset();$("pickup").value="Kurikaddwan Jetty";$("people").value=2}catch(err){show("bookingMessage","Booking failed: "+err.message)}};
 $("login").onclick=async()=>{try{await signInWithEmailAndPassword(auth,$("email").value,$("password").value);show("loginMsg","Logged in")}catch(e){show("loginMsg","Login error: "+e.message)}};
